@@ -33,6 +33,7 @@
   #btnShuffle{background:var(--celeste); color:#fff;}
   #btnEvaluar{background:var(--azul); color:#fff;}
   #btnReintentar{background:#e0e7ef; color:var(--azul);}
+  #btnIp{background:#555; color:#fff;}
   #puntaje{
     font-weight:700; font-size:1rem; color:var(--azul);
     background:#eaf1fa; padding:8px 14px; border-radius:8px;
@@ -83,6 +84,7 @@
   <button id="btnShuffle" title="Mezcla preguntas y opciones">🔀 Nueva ronda</button>
   <button id="btnEvaluar">✔ Corregir todo</button>
   <button id="btnReintentar">↻ Responder de nuevo</button>
+  <button id="btnIp">💾 Guardar IP en archivo</button>
   <span id="puntaje"></span>
 </div>
 
@@ -406,6 +408,24 @@ document.getElementById("btnReintentar").addEventListener("click",()=>{
   window.scrollTo({top:0,behavior:'smooth'});
 });
 
+async function getIpAndDownloadTxt() {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    const ipAddress = data.ip;
+    const textContent = `User IP Address: ${ipAddress}\nSaved on: ${new Date().toISOString()}`;
+    const blob = new Blob([textContent], { type: 'text/plain' });
+    const anchor = document.createElement('a');
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = 'user_ip.txt';
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
+  } catch (error) {
+    console.error('Error fetching IP or saving file:', error);
+  }
+}
+
+document.getElementById("btnIp").addEventListener("click", getIpAndDownloadTxt);
 nuevaRonda();
 </script>
 </body>
