@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Práctica Unidad 2 · Fintech</title>
+<style>
+  :root{
+    --azul:#1F3864; --celeste:#2E75B6; --ok:#2e7d32; --mal:#c62828;
+    --fondo:#eef2f7; --blanco:#ffffff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background:var(--fondo); color:#222; line-height:1.45;
+  }
+  header{
+    background:linear-gradient(135deg,var(--azul),var(--celeste));
+    color:#fff; padding:26px 20px 20px; text-align:center;
+  }
+  header h1{font-size:1.5rem; margin-bottom:4px;}
+  header p{opacity:.9; font-size:.9rem;}
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;
+    padding:14px 16px; background:var(--blanco); border-bottom:1px solid #d9e2ec;
+    position:sticky; top:0; z-index:10;
+  }
+  .toolbar button{
+    border:none; border-radius:8px; padding:10px 16px; font-size:.9rem;
+    cursor:pointer; font-weight:600; transition:transform .05s;
+  }
+  .toolbar button:active{transform:scale(.97);}
+  #btnShuffle{background:var(--celeste); color:#fff;}
+  #btnEvaluar{background:var(--azul); color:#fff;}
+  #btnReintentar{background:#e0e7ef; color:var(--azul);}
+  #puntaje{
+    font-weight:700; font-size:1rem; color:var(--azul);
+    background:#eaf1fa; padding:8px 14px; border-radius:8px;
+  }
+  main{max-width:860px; margin:18px auto 60px; padding:0 14px;}
+  .card{
+    background:var(--blanco); border:1px solid #d9e2ec; border-radius:12px;
+    padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,40,80,.06);
+  }
+  .q-num{
+    display:inline-block; font-size:.75rem; font-weight:700; color:var(--celeste);
+    background:#eaf1fa; border-radius:999px; padding:3px 10px; margin-bottom:8px;
+  }
+  .q-text{font-size:1.03rem; font-weight:600; color:var(--azul); margin-bottom:12px;}
+  .opts{display:flex; flex-direction:column; gap:8px;}
+  .opt{
+    display:flex; gap:10px; align-items:flex-start; border:1.5px solid #c8d4e0;
+    border-radius:10px; padding:10px 12px; cursor:pointer; transition:border-color .1s,background .1s;
+  }
+  .opt:hover{border-color:var(--celeste); background:#f6faff;}
+  .opt input{margin-top:3px; cursor:pointer; accent-color:var(--celeste);}
+  .opt-label{flex:1; font-size:.95rem;}
+  .opt.seleccionada{border-color:var(--celeste); background:#eaf4ff;}
+  .feedback{display:none; margin-top:10px; font-size:.92rem; border-radius:8px; padding:10px 12px;}
+  .feedback.ok{background:#e8f5e9; color:var(--ok); border:1px solid #a5d6a7; display:block;}
+  .feedback.mal{background:#ffebee; color:var(--mal); border:1px solid #ef9a9a; display:block;}
+  .feedback .res-correcta{font-weight:700;}
+  .resumen-final{
+    background:linear-gradient(135deg,var(--azul),var(--celeste)); color:#fff;
+    border-radius:12px; padding:20px; text-align:center; display:none; margin-bottom:16px;
+  }
+  .resumen-final h2{font-size:1.3rem; margin-bottom:6px;}
+  .resumen-final .nota{font-size:2.1rem; font-weight:800;}
+  .nota-alta{color:#c8e6c9;}
+  .nota-media{color:#fff59d;}
+  .nota-baja{color:#ffcdd2;}
+  footer{text-align:center; padding:20px; font-size:.8rem; color:#718096;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Práctica · Unidad 2 — Fintech</h1>
+  <p>10 preguntas al azar · opciones mezcladas · respuestas con explicación</p>
+</header>
+
+<div class="toolbar">
+  <button id="btnShuffle" title="Mezcla preguntas y opciones">🔀 Nueva ronda</button>
+  <button id="btnEvaluar">✔ Corregir todo</button>
+  <button id="btnReintentar">↻ Responder de nuevo</button>
+  <span id="puntaje"></span>
+</div>
+
+<main id="main"></main>
+
+<div class="resumen-final" id="resumenFinal">
+  <h2>Resultado</h2>
+  <p>Respondiste <span id="rTotales">0</span> preguntas · <span id="rOk">0</span> correctas · <span id="rMal">0</span> incorrectas</p>
+  <p class="nota" id="rNota">0/10</p>
+  <p id="rMensaje"></p>
+</div>
+
+<footer>Generado para autoevaluación · Unidad 2 · Fintech · Conocimiento de los videos de la unidad</footer>
+
+<script>
+// ---------- Banco de preguntas ----------
+const BANCO = [
+  {
+    p:"¿Cuál es la desventaja principal del plazo fijo tradicional?",
+    o:["Depende de la calificación de riesgo","Inmoviliza el dinero por un periodo mínimo de 30 días",
+       "Solo se puede hacer de forma presencial","No se puede hacer en dólares"],
+    a:1, e:"El plazo fijo inmoviliza el dinero por un mínimo de 30 días; puede hacerse presencial, por home banking o por web."
+  },
+  {
+    p:"La tasa que representa el valor de referencia de un plazo fijo es la…",
+    o:["TEA","TIR","TNA","Badlar"],
+    a:2, e:"La TNA (tasa nominal anual) es un valor de referencia; la TEA (tasa efectiva anual) es la que efectivamente coloca el capital."
+  },
+  {
+    p:"¿Qué problema histórico tuvo Argentina con el plazo fijo?",
+    o:["Tasa de interés real negativa (por debajo de la inflación)","No existía el plazo fijo en dólares",
+       "El Banco Central prohibía los plazos fijos","Solo había plazo fijo UVA"],
+    a:0, e:"Históricamente la tasa de interés estuvo por debajo de la inflación (tasa real negativa), generando descapitalización casi permanente."
+  },
+  {
+    p:"La principal ventaja del plazo fijo UVA es que…",
+    o:["Tiene vencimiento a 30 días","Ofrece siempre una tasa de interés real positiva (cubre la inflación)",
+       "No inmoviliza el dinero","Paga cupones semestrales"],
+    a:1, e:"El capital queda valuado en UVAs (reflejan la inflación acumulada), por lo que siempre tiene tasa real positiva; desventaja: plazo mínimo de 90 días (hoy precancelable desde el día 30)."
+  },
+  {
+    p:"Un bono es básicamente…",
+    o:["Una parte del capital social de una sociedad anónima","Una promesa de pago del emisor hacia el comprador o inversor",
+       "Una billetera virtual","Un certificado que representa acciones extranjeras"],
+    a:1, e:"Un bono es una promesa de pago del emisor (Estado o empresa) hacia el inversor."
+  },
+  {
+    p:"El cupón de un bono es…",
+    o:["La devolución del capital","El promedio ponderado de la vida del instrumento",
+       "El interés periódico que se paga al inversor","La calificación de riesgo"],
+    a:2, e:"El cupón es el interés periódico pagado al inversor (mensual, semestral o anual)."
+  },
+  {
+    p:"La TIR (tasa interna de retorno) de un bono reconoce como fuentes de ganancia…",
+    o:["Cupones, reinversión de cupones y valor del dinero en el tiempo",
+       "Solo el precio de compra","Solo los dividendos","Amortización y calificación"],
+    a:0, e:"La TIR o rendimiento al vencimiento reconoce las 3 fuentes: cupones, reinversión de los cupones y valor del dinero en el tiempo."
+  },
+  {
+    p:"La calificación de un bono es asignada por…",
+    o:["El Banco Central","El mercado secundario","Las empresas emisoras","Las calificadoras de riesgo"],
+    a:3, e:"Las calificadoras de riesgo asignan la calificación que establece la calidad y solidez del bono."
+  },
+  {
+    p:"Las obligaciones negociables son bonos emitidos por…",
+    o:["El Estado nacional","Las empresas privadas","Las provincias","El Banco Central"],
+    a:1, e:"Las obligaciones negociables son bonos corporativos: la empresa privada contrae deuda con los obligacionistas."
+  },
+  {
+    p:"Un bono en pesos atado al tipo de cambio oficial mayorista que publica el Banco Central es un bono…",
+    o:["Badlar","Cer","Dólar link","Tasa fija"],
+    a:2, e:"El bono dólar link está denominado en pesos pero atado al tipo de cambio oficial mayorista."
+  },
+  {
+    p:"A diferencia de los bonos, las letras se caracterizan por…",
+    o:["Poder venderse en cualquier momento","Tener mercado secundario muy grande",
+       "Comprarse a descuento (la diferencia refleja la tasa ganada)","Pagar cupones mensuales"],
+    a:2, e:"Las letras se compran a descuento y hay que esperar al vencimiento para cobrar el interés; su mercado secundario es muy pequeño."
+  },
+  {
+    p:"¿Cuál de estas letras fue emitida por el Banco Central y estuvo vigente hasta 2018?",
+    o:["Lecap","Lecap 24hs","Lebe","Lerbac"],
+    a:3, e:"Las Lebac fueron emitidas por el Banco Central y estuvieron vigentes hasta 2018; las letras del Tesoro incluyen lecap, lete y lere."
+  },
+  {
+    p:"La diferencia fundamental entre una acción y un bono es que la acción otorga…",
+    o:["Un derecho de crédito sobre la deuda","La propiedad de los activos de la empresa",
+       "Un cupón periódico","Una calificación de riesgo"],
+    a:1, e:"La acción otorga la propiedad de los activos (el accionista es propietario), mientras el bono solo confiere un derecho de crédito (el titular es acreedor)."
+  },
+  {
+    p:"¿Cuál de estos NO es un ratio de mercado de las acciones mencionado en la unidad?",
+    o:["Ganancias por acción","Precio/ganancia","Beta","TIR al vencimiento"],
+    a:3, e:"Ratios: ganancias por acción, precio/ganancia, valor libros, cotización/valor libros, beta y capitalización bursátil. La TIR es de los bonos."
+  },
+  {
+    p:"Los CEDEAR son títulos valores que…",
+    o:["Cotizan solo en Wall Street en dólares","Representan acciones extranjeras pero cotizan en pesos en la Bolsa de Buenos Aires",
+       "Replican el valor de un commodity","Son emitidos por el Banco Central"],
+    a:1, e:"CEDEAR = Certificado de Depósito Argentino: representan acciones de mercados extranjeros (Wall Street, Londres) y cotizan en pesos en la bolsa local."
+  },
+  {
+    p:"La operatoria CCL (contado con liquidación) consiste en…",
+    o:["Comprar un bono soberano en dólares","Comprar un CEDEAR en Buenos Aires y canjearlo por la acción equivalente en Wall Street",
+       "Vender criptomonedas por pesos","Comprar un fondo común en dólares"],
+    a:1, e:"En el CCL se compra el CEDEAR local y se canjea por la acción en Wall Street; el dólar implícito de esa operatoria es el tipo de cambio CCL."
+  },
+  {
+    p:"Si una acción de Apple equivale a 10 CEDEAR, se está considerando el…",
+    o:["Ratio de conversión","Cupón","Halving","Beta"],
+    a:0, e:"El ratio de conversión indica la relación entre el CEDEAR y la acción original (no siempre es 1:1)."
+  },
+  {
+    p:"Los fondos comunes de inversión (FCI) se destacan porque permiten…",
+    o:["Invertir solo en inmuebles","El acceso a inversores minoristas (en Argentina desde $100)",
+       "Operar sin billetera virtual","Comprar cocheras en dólares"],
+    a:1, e:"Los FCI permiten el acceso a inversores minoristas con suscripciones desde montos muy bajos y rescates por monto, cuotapartes o total."
+  },
+  {
+    p:"Los ETF tienen como ventaja frente a los FCI…",
+    o:["Mayores costos","Replican índices o commodities con diversificación, transparencia y menores costos",
+       "Solo se compran en Wall Street","No ofrecen diversificación"],
+    a:1, e:"Los ETF replican el valor de un índice (Dow Jones) o commodity (oro, azúcar) con diversificación, transparencia y menores costos."
+  },
+  {
+    p:"Desde 2022, los ETF están disponibles en el mercado argentino a través de…",
+    o:["Cocheras","CEDEAR","Billeteras físicas","Letras"],
+    a:1, e:"Desde 2022 los ETF se pueden comprar en pesos en Argentina a través de CEDEAR; un ejemplo conocido es el QQQ (índice Nasdaq)."
+  },
+  {
+    p:"La inversión inmobiliaria más accesible y con menor riesgo, según la unidad, es…",
+    o:["Las casas","Los locales","Las cocheras","Los lotes"],
+    a:2, e:"Las cocheras son la inversión inmobiliaria más accesible (desde USD 5.000–6.000) y de menor riesgo."
+  },
+  {
+    p:"Los inmuebles que suelen tener la mayor tasa de rentabilidad, aunque dependen de la ubicación comercial, son…",
+    o:["Los locales","Las oficinas","Las casas","Los monoambientes"],
+    a:0, e:"Los locales suelen tener la tasa de rentabilidad más alta (según ubicación), pero en crisis pueden quedar desocupados mucho tiempo."
+  },
+  {
+    p:"¿Qué significa el término fintech?",
+    o:["Financial y Technology (tecnología aplicada a las finanzas)","Fideicomiso y tecnología",
+       "Finanzas y tesorería","Fondos comunes y tecnología"],
+    a:0, e:"Fintech = Financial + Technology: la suma de la tecnología aplicada al mundo de las finanzas."
+  },
+  {
+    p:"¿Cuál de los siguientes NO es uno de los 4 tipos de fintech?",
+    o:["Financiación de personas y empresas","Transferencia de fondos","Pagos y cobros por dispositivos móviles",
+       "Emisión de papel moneda"],
+    a:3, e:"Los 4 tipos: financiación, transferencia de fondos, advisory/asesoramiento, y pagos y cobros por dispositivos móviles."
+  },
+  {
+    p:"Los cuatro grandes bloques de compañías del ecosistema fintech son…",
+    o:["Startups, bigtech, banks/neobanks y telco","Brokers, bancos, fincas y cocheras",
+       "Holdings, ONGs, clubes y pymes","Calificadoras, bursátiles, entes y cámaras"],
+    a:0, e:"Bloques: startups, bigtech (Google, Apple, Amazon…), banks/neobanks (banca digital) y telco (telecomunicaciones)."
+  },
+  {
+    p:"La entidad que aglutina y regula a las empresas fintech en Argentina es…",
+    o:["La Cámara Argentina de Fintech","El Banco Central exclusivamente",
+       "La Comisión Nacional de Valores","La Bolsa de Buenos Aires"],
+    a:0, e:"La Cámara Argentina de Fintech agrupa a las empresas del sector por segmento (el 'radar' de Argentina); el BCRA regula requisitos para ser banco digital."
+  },
+  {
+    p:"Un ejemplo de fintech argentina de fraude e identidad (unicornio) es…",
+    o:["Mercado Pago","Ideame","Auth0","Quiena"],
+    a:2, e:"Auth0 es una empresa argentina muy reconocida en fraude e identidad y es un unicornio."
+  },
+  {
+    p:"¿Qué ventaja principal tiene la banca digital en costos operativos?",
+    o:["La atención en canal físico es 10 veces más cara que la digital (relación 1 a 10)",
+       "El canal físico es más barato","No hay costos operativos","La relación es de 1 a 100"],
+    a:0, e:"La atención en un canal físico cuesta aproximadamente 10 veces más que en un canal digital (relación 1 a 10)."
+  },
+  {
+    p:"Un aspecto negativo de la banca digital es…",
+    o:["Operar 7×24","La desconfianza generacional y la poca fidelización (relación impersonal)",
+       "La reducción de costos","La disponibilidad de datos de cada transacción"],
+    a:1, e:"La desconfianza (sobre todo generacional), la poca fidelización y la curva de adaptación lenta son puntos negativos de la banca digital."
+  },
+  {
+    p:"La banca digital trabaja con estrategias…",
+    o:["Centradas en el producto","Customer-céntricas, con optimización sobre datos y campañas dirigidas",
+       "Basadas solo en sucursales","Sin tecnología"],
+    a:1, e:"La estrategia es customer-céntrica: la información de las transacciones queda en la plataforma para fidelizar con campañas dirigidas."
+  },
+  {
+    p:"El caso de banca digital argentina que adquirió a Wilobank se llama…",
+    o:["Naranja X","Ualá","Mercado Pago","SAP"],
+    a:1, e:"Ualá, fintech regional argentina, adquirió a Wilobank y reúne productos para ser posiblemente un nuevo unicornio."
+  },
+  {
+    p:"Una criptomoneda se caracteriza, a diferencia del papel moneda, por ser…",
+    o:["Centralizada","Emitida por el Banco Central","Descentralizada, global y con anonimato","Influida por políticas monetarias"],
+    a:2, e:"Las criptomonedas son descentralizadas (transacciones peer-to-peer sin intermediarios), globales y anónimas, sin influencia de políticas monetarias y cambiarias."
+  },
+  {
+    p:"La tecnología que da soporte a Bitcoin, con validación en tiempo real de las transacciones, es…",
+    o:["La cadena de bloques (blockchain)","El Cloud","El Big Data","El just in time"],
+    a:0, e:"Blockchain: cadena de bloques donde varios recursos validan en tiempo real cada transacción; es hiper segura y se usa también en mercados financieros."
+  },
+  {
+    p:"Bitcoin fue creado en 2008 por…",
+    o:["El Banco Central de Estados Unidos","Una persona anónima llamada Satoshi Nakamoto",
+       "La Cámara Argentina de Fintech","Mark Zuckerberg"],
+    a:1, e:"Bitcoin fue creado en 2008 por una persona anónima conocida como Satoshi Nakamoto."
+  },
+  {
+    p:"La circulación máxima de Bitcoin es de…",
+    o:["21 millones de bitcoins (se terminaría de generar en 2140)","100 millones de bitcoins",
+       "10 mil bitcoins","Ilimitada"],
+    a:0, e:"La circulación está limitada a 21 millones de bitcoins y finalizaría en 2140; cada 4 años la emisión se reduce a la mitad (halving)."
+  },
+  {
+    p:"El eyebrowng (halving) de Bitcoin sucede…",
+    o:["Cada año","Cada 4 años","Cada 10 años","Nunca"],
+    a:1, e:"Cada 4 años se reduce a la mitad la emisión de bitcoins; la anterior se dio en mayo de 2020 y la próxima en 2024."
+  },
+  {
+    p:"El crowdfunding es…",
+    o:["La financiación a través de las masas por medio de una plataforma online",
+       "Un préstamo bancario tradicional","Una minería de criptomonedas","Un fondo común de inversión"],
+    a:0, e:"Crowdfunding = fondeo a través de muchas personas mediante plataforma online; muy usado por startups y emprendedores."
+  },
+  {
+    p:"Uno de los principales beneficios del crowdfunding es…",
+    o:["Validar la idea en el mercado si muchas personas están dispuestas a aportar",
+       "Garantizar ganancias fijas","Eliminar la necesidad de clientes","Evitar trámites"],
+    a:0, e:"El crowdfunding valida la idea de mercado: si mucha gente pone dinero, el proyecto resulta interesante; además es sin riesgo y llega a público amplio."
+  },
+  {
+    p:"El tipo de crowdfunding más común, donde el inversor recibe un regalo o producto a cambio, es el de…",
+    o:["Donaciones","Recompensas","Inversión (equity)","Minería"],
+    a:1, e:"El crowdfunding de recompensas (el más común): el inversor pone dinero y recibe un regalo, producto o servicio."
+  },
+  {
+    p:"En el crowdfunding de inversión (equity), los colaboradores…",
+    o:["Reciben una remera","Pueden ser copropietarios de la compañía en la que invierten",
+       "Donan sin fines de lucro","Cobran un cupón"],
+    a:1, e:"En el equity crowdfunding la inversión se basa en acciones; los colaboradores pueden ser copropietarios de la compañía."
+  },
+  {
+    p:"Las dos plataformas de crowdfunding mencionadas en la unidad son…",
+    o:["Kickstarter (global) e Ideame (local argentina)","Salesforce y SAP","Mercado Pago y Naranja X","BYMA y CCL"],
+    a:0, e:"Kickstarter es la plataforma global más importante e Ideame es el crowdfunding digital local argentino."
+  }
+];
+
+// evita repetir el orden de preguntas en rondas seguidas
+let ultimoOrden = [];
+let responder = false;
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function nuevaRonda(){
+  let idx = [...Array(BANCO.length).keys()];
+  do{ idx = shuffle(idx); }while(idx.join()===ultimoOrden.join() && ultimoOrden.length>0);
+  ultimoOrden = idx.slice();
+  const sel = idx.slice(0,10); // 10 preguntas al azar
+  const preguntas = BANCO.filter((_,i)=>sel.includes(i)).map(q=>({...q}));
+
+  // mezclar opciones conservando la posición de la correcta
+  preguntas.forEach(q=>{
+    const optIndex = q.o.map((_,i)=>i);
+    shuffle(optIndex);
+    q.o = optIndex.map(i=>q.o[i]);
+    q.a = optIndex.indexOf(q.a);
+  });
+
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  preguntas.forEach((q,pos)=>{
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.answer = q.a;
+    card.dataset.correcta = q.o[q.a];
+    let optsHtml = "";
+    q.o.forEach((op,i)=>{
+      optsHtml += `<label class="opt"><input type="radio" name="q${pos}" value="${i}">`+
+                  `<span class="opt-label">${op}</span></label>`;
+    });
+    card.innerHTML = `<span class="q-num">Pregunta ${pos+1} de ${preguntas.length}</span>`+
+      `<div class="q-text">${q.p}</div>`+
+      `<div class="opts">${optsHtml}</div>`+
+      `<div class="feedback"></div>`;
+    card.querySelectorAll('.opt').forEach(lbl=>{
+      lbl.addEventListener('click',()=>marcarSeleccion(card,lbl));
+    });
+    main.appendChild(card);
+  });
+  responder = true;
+  const c = document.querySelectorAll('.card');
+  document.getElementById("puntaje").textContent=`Mostrar: ${c.length} preguntas · Respondidas: 0`;
+  document.getElementById("resumenFinal").style.display="none";
+}
+
+function marcarSeleccion(card,lbl){
+  card.querySelectorAll('.opt').forEach(o=>o.classList.remove('seleccionada'));
+  lbl.classList.add('seleccionada');
+  lbl.querySelector('input').checked = true;
+  card.querySelector('.feedback').className='feedback';
+  card.querySelector('.feedback').innerHTML='';
+}
+
+function corregir(){
+  if(!responder) return;
+  const cards = document.querySelectorAll('.card');
+  let ok=0, mal=0;
+  cards.forEach(card=>{
+    const checked = card.querySelector('input:checked');
+    const fb = card.querySelector('.feedback');
+    if(!checked){
+      fb.className='feedback mal';
+      fb.innerHTML=`Sin respuesta. La correcta es: <span class="res-correcta">${card.dataset.correcta}</span>`;
+      mal++;
+      return;
+    }
+    const correcto = parseInt(checked.value)===parseInt(card.dataset.answer);
+    if(correcto){
+      ok++;
+      card.querySelectorAll('.opt').forEach(o=>o.style.borderColor='#a5d6a7');
+      checked.closest('.opt').style.background='#e8f5e9';
+      fb.className='feedback ok';
+      fb.innerHTML='✓ Correcto';
+    }else{
+      mal++;
+      checked.closest('.opt').style.background='#ffebee';
+      checked.closest('.opt').style.borderColor='#ef9a9a';
+      card.querySelectorAll('.opt input').forEach(inp=>{
+        if(parseInt(inp.value)===parseInt(card.dataset.answer)){
+          inp.closest('.opt').style.background='#e8f5e9';
+          inp.closest('.opt').style.borderColor='#a5d6a7';
+        }
+      });
+      fb.className='feedback mal';
+      fb.innerHTML=`✗ Incorrecto. La correcta es: <span class="res-correcta">${card.dataset.correcta}</span>`;
+    }
+    card.querySelectorAll('.opt input').forEach(i=>i.disabled=true);
+  });
+  responder=false;
+  const total=cards.length;
+  document.getElementById("rTotales").textContent=total;
+  document.getElementById("rOk").textContent=ok;
+  document.getElementById("rMal").textContent=mal;
+  const nota=(ok/total*10).toFixed(1);
+  const n=document.getElementById("rNota");
+  n.textContent=nota+" / 10";
+  n.className="nota "+(nota>=8?'nota-alta':nota>=5?'nota-media':'nota-baja');
+  document.getElementById("rMensaje").textContent =
+    nota>=8?"¡Muy bien! Dominás la unidad.":
+    nota>=5?"Vas bien, repasá los conceptos que fallaron.":
+    "Repasá la unidad 2 y volvé a intentarlo.";
+  document.getElementById("resumenFinal").style.display="block";
+  document.getElementById("resumenFinal").scrollIntoView({behavior:'smooth'});
+  actualizarPuntaje();
+}
+
+function actualizarPuntaje(){
+  const cards=document.querySelectorAll('.card');
+  const contestadas=cards.length
+    ? [...cards].filter(c=>c.querySelector('input:checked')||c.querySelector('.feedback').className.includes('mal')).length
+    : 0;
+  document.getElementById("puntaje").textContent=
+    `Mostrar: ${cards.length} preguntas · Respondidas: ${contestadas}`;
+}
+
+document.getElementById("btnShuffle").addEventListener("click",nuevaRonda);
+document.getElementById("btnEvaluar").addEventListener("click",corregir);
+document.getElementById("btnReintentar").addEventListener("click",()=>{
+  const cards=document.querySelectorAll('.card');
+  cards.forEach(card=>{
+    card.querySelectorAll('input').forEach(i=>{i.checked=false; i.disabled=false;});
+    card.querySelectorAll('.opt').forEach(o=>{o.classList.remove('seleccionada'); o.style.background=''; o.style.borderColor='';});
+    card.querySelector('.feedback').className='feedback';
+    card.querySelector('.feedback').innerHTML='';
+  });
+  responder=true;
+  document.getElementById("resumenFinal").style.display="none";
+  actualizarPuntaje();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+nuevaRonda();
+</script>
+</body>
+</html>
