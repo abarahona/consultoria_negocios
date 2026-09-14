@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Práctica Unidad 1 · Marketing y CRM</title>
+<style>
+  :root{
+    --azul:#1F3864; --celeste:#2E75B6; --ok:#2e7d32; --mal:#c62828;
+    --fondo:#eef2f7; --blanco:#ffffff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background:var(--fondo); color:#222; line-height:1.45;
+  }
+  header{
+    background:linear-gradient(135deg,var(--azul),var(--celeste));
+    color:#fff; padding:26px 20px 20px; text-align:center;
+  }
+  header h1{font-size:1.5rem; margin-bottom:4px;}
+  header p{opacity:.9; font-size:.9rem;}
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;
+    padding:14px 16px; background:var(--blanco); border-bottom:1px solid #d9e2ec;
+    position:sticky; top:0; z-index:10;
+  }
+  .toolbar button{
+    border:none; border-radius:8px; padding:10px 16px; font-size:.9rem;
+    cursor:pointer; font-weight:600; transition:transform .05s;
+  }
+  .toolbar button:active{transform:scale(.97);}
+  #btnShuffle{background:var(--celeste); color:#fff;}
+  #btnEvaluar{background:var(--azul); color:#fff;}
+  #btnReintentar{background:#e0e7ef; color:var(--azul);}
+  #puntaje{
+    font-weight:700; font-size:1rem; color:var(--azul);
+    background:#eaf1fa; padding:8px 14px; border-radius:8px;
+  }
+  main{max-width:860px; margin:18px auto 60px; padding:0 14px;}
+  .card{
+    background:var(--blanco); border:1px solid #d9e2ec; border-radius:12px;
+    padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(20,40,80,.06);
+  }
+  .q-num{
+    display:inline-block; font-size:.75rem; font-weight:700; color:var(--celeste);
+    background:#eaf1fa; border-radius:999px; padding:3px 10px; margin-bottom:8px;
+  }
+  .q-text{font-size:1.03rem; font-weight:600; color:var(--azul); margin-bottom:12px;}
+  .opts{display:flex; flex-direction:column; gap:8px;}
+  .opt{
+    display:flex; gap:10px; align-items:flex-start; border:1.5px solid #c8d4e0;
+    border-radius:10px; padding:10px 12px; cursor:pointer; transition:border-color .1s,background .1s;
+  }
+  .opt:hover{border-color:var(--celeste); background:#f6faff;}
+  .opt input{margin-top:3px; cursor:pointer; accent-color:var(--celeste);}
+  .opt-label{flex:1; font-size:.95rem;}
+  .opt.seleccionada{border-color:var(--celeste); background:#eaf4ff;}
+  .feedback{display:none; margin-top:10px; font-size:.92rem; border-radius:8px; padding:10px 12px;}
+  .feedback.ok{background:#e8f5e9; color:var(--ok); border:1px solid #a5d6a7; display:block;}
+  .feedback.mal{background:#ffebee; color:var(--mal); border:1px solid #ef9a9a; display:block;}
+  .feedback .res-correcta{font-weight:700;}
+  .resumen-final{
+    background:linear-gradient(135deg,var(--azul),var(--celeste)); color:#fff;
+    border-radius:12px; padding:20px; text-align:center; display:none; margin-bottom:16px;
+  }
+  .resumen-final h2{font-size:1.3rem; margin-bottom:6px;}
+  .resumen-final .nota{font-size:2.1rem; font-weight:800;}
+  .nota-alta{color:#c8e6c9;}
+  .nota-media{color:#fff59d;}
+  .nota-baja{color:#ffcdd2;}
+  footer{text-align:center; padding:20px; font-size:.8rem; color:#718096;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Práctica · Unidad 1 — Marketing y CRM</h1>
+  <p>10 preguntas al azar · opciones mezcladas · respuestas con explicación</p>
+</header>
+
+<div class="toolbar">
+  <button id="btnShuffle" title="Mezcla preguntas y opciones">🔀 Nueva ronda</button>
+  <button id="btnEvaluar">✔ Corregir todo</button>
+  <button id="btnReintentar">↻ Responder de nuevo</button>
+  <span id="puntaje"></span>
+</div>
+
+<main id="main"></main>
+
+<div class="resumen-final" id="resumenFinal">
+  <h2>Resultado</h2>
+  <p>Respondiste <span id="rTotales">0</span> preguntas · <span id="rOk">0</span> correctas · <span id="rMal">0</span> incorrectas</p>
+  <p class="nota" id="rNota">0/10</p>
+  <p id="rMensaje"></p>
+</div>
+
+<footer>Generado para práctica · Unit 1 · Marketing y CRM · Conocimiento obtenido de los videos de la unidad</footer>
+
+<script>
+// ---------- Banco de preguntas ----------
+const BANCO = [
+  {
+    p:"¿Cuál es la definición corta de marketing destacada en la unidad?",
+    o:["Vender y publicitar productos o servicios","Satisfacer necesidades en forma rentable",
+       "Fabricar productos de la mayor calidad","Hacer propaganda intensiva de la marca"],
+    a:1, e:"El marketing se define como 'satisfacer necesidades en forma rentable'; la venta y la publicidad son solo la punta del iceberg."
+  },
+  {
+    p:"Según la Asociación Americana de Marketing (AMA), el marketing es una función organizacional y un conjunto de procesos para…",
+    o:["Reducir costos y bajar precios","Fabricar en masa y distribuir en tiendas",
+       "Crear, comunicar y entregar valor, y administrar las relaciones con los consumidores",
+       "Hacer campañas de promoción intensivas"],
+    a:2, e:"La AMA define el marketing como crear, comunicar y entregar valor a los consumidores y administrar las relaciones con ellos, obteniendo un beneficio."
+  },
+  {
+    p:"En un proceso de intercambio, si el proceso llega a buen puerto se produce…",
+    o:["Una necesidad","Un deseo","Una demanda latente","Una transacción"],
+    a:3, e:"La transacción es el canje de valores entre dos o más partes cuando el intercambio llega a buen puerto."
+  },
+  {
+    p:"Cuando el producto es desaprobado, generalmente por mala calidad o mal servicio, estamos ante una demanda…",
+    o:["Negativa","Inexistente","Latente","Excesiva"],
+    a:0, e:"La demanda negativa ocurre cuando el producto es desaprobado (mala calidad o mal servicio)."
+  },
+  {
+    p:"Una necesidad en los consumidores que ningún producto o servicio satisface todavía es una demanda…",
+    o:["Declive","Indeseable","Latente","Completa"],
+    a:2, e:"La demanda latente es una necesidad no satisfecha por ningún producto; descubrirla es difícil pero muy redituable."
+  },
+  {
+    p:"Cuando hay más consumidores que oferta disponible, la demanda es…",
+    o:["Completa","Irregular","Indeseable","Excesiva"],
+    a:3, e:"La demanda excesiva ocurre cuando hay más consumidores que oferta; no es un buen estado."
+  },
+  {
+    p:"El mercado donde las empresas venden sistemas, consultoría o software a otras empresas es el mercado…",
+    o:["De consumidores","De empresas (B2B)","Global","No lucrativo"],
+    a:1, e:"El mercado de empresas (B2B) es el cliente clásico del ingeniero en sistemas: se venden sistemas y consultoría, y pesan la reputación, la lealtad y la fuerza de venta."
+  },
+  {
+    p:"Un conjunto de productos y servicios complementarios a otro producto (auto + repuestos + seguros + financiación) se denomina…",
+    o:["Mercado virtual","Segmentación","Metamercado","Mercado demográfico"],
+    a:2, e:"El metamercado describe productos y servicios complementarios a un producto; por ejemplo, el metamercado automotriz."
+  },
+  {
+    p:"El enfoque que sostiene que \"sin estímulo los consumidores no adquirirán suficientes productos, por lo que hace falta propaganda y promoción intensas\" es el enfoque…",
+    o:["De producción","De producto","De ventas","Holístico"],
+    a:2, e:"El enfoque de ventas se basa en esfuerzos intensos de propaganda y promoción; sus ejemplos clásicos son Coca-Cola y los seguros."
+  },
+  {
+    p:"¿Cuál de los siguientes es un enfoque NUEVO (centrado en el cliente) y no un viejo paradigma?",
+    o:["Enfoque de producción","Enfoque de producto","Enfoque de ventas","Enfoque de marketing holístico"],
+    a:3, e:"El enfoque de marketing holístico (junto con el enfoque de marketing) se centra en el cliente; producción, producto y ventas se centran en el producto."
+  },
+  {
+    p:"La necesidad de que el sistema sea amigable y cómodo que el cliente no expresa directamente corresponde a una necesidad…",
+    o:["Declarada","Real","De deleite","No declarada"],
+    a:2, e:"Las necesidades de deleite son extras que el cliente desea (que el sistema sea amigable, cómodo) pero que no siempre declara."
+  },
+  {
+    p:"Relación correcta entre los conceptos necesidad, deseo y demanda:",
+    o:["La demanda es un deseo respaldado por capacidad de pago",
+       "La necesidad es siempre y solo la capacidad de pago",
+       "El deseo es el requerimiento básico del ser humano",
+       "La demanda existe aunque no haya capacidad de pago"],
+    a:0, e:"Necesidad = requerimiento básico; deseo = necesidad dirigida a un objeto; demanda = deseo respaldado por capacidad de pago."
+  },
+  {
+    p:"El valor que percibe un cliente es básicamente una combinación de…",
+    o:["Cantidad, plaza y promoción","Calidad, servicio y precio","Marca, envase y publicidad","Producción y distribución"],
+    a:1, e:"El valor es la combinación de calidad, servicio y precio; el valor permite captar clientes y la satisfacción permite mantenerlos."
+  },
+  {
+    p:"Los canales de comunicación, de distribución y de servicios son los tres tipos de canales de…",
+    o:["Suministro","Investigación","Marketing","Financiación"],
+    a:2, e:"Los canales de marketing son de comunicación (TV, radio, diarios, internet), de distribución (mayoristas, minoristas, agentes) y de servicios."
+  },
+  {
+    p:"El entorno de marketing que incluye a las partes que intervienen en la producción, distribución y promoción de la oferta es el entorno…",
+    o:["General","Funcional","Demográfico","Económico"],
+    a:1, e:"El entorno funcional incluye producción, distribución, promoción y público meta; el general está compuesto por 6 elementos (demográfico, económico, físico, tecnológico, político-legal, sociocultural)."
+  },
+  {
+    p:"El cambio de paradigma \"la organización se divide por segmentos de consumidores en lugar de por productos\" se ilustra con…",
+    o:["Coca-Cola","Walmart","Nike","SAP"],
+    a:2, e:"Nike pasó de organizarse por productos (zapatillas, camisetas) a organizarse por segmentos de clientes (tenis, fútbol, básquet)."
+  },
+  {
+    p:"Según la filosofía del CRM, todos dentro de la empresa somos clientes y proveedores…",
+    o:["Externos","Internos","Digitales","Potenciales"],
+    a:1, e:"El cliente interno: en los procesos de la compañía todos nos convertimos en clientes y proveedores internos (filosofía del CRM)."
+  },
+  {
+    p:"¿Qué significa la sigla CRM?",
+    o:["Customer Relationship Management","Client Relationship Marketing",
+       "Company Resource Management","Customer Revenue Management"],
+    a:0, e:"CRM = Customer Relationship Management (administración de la relación con los clientes), término difundido por Ronald Swift en 1995."
+  },
+  {
+    p:"El caso de Walmart que relacionaba la compra de pañales con la compra de cerveza ejemplifica…",
+    o:["La demanda negativa","El análisis de canasta y las ventas cruzadas",
+       "El metamercado automotriz","El enfoque de producción"],
+    a:1, e:"El analytics del CRM detectó que quienes compraban pañales también compraban cerveza, permitiendo ventas cruzadas y análisis de canasta."
+  },
+  {
+    p:"Los objetivos del CRM son llegar al cliente adecuado, por el canal adecuado, en el momento oportuno y…",
+    o:["Con la oferta adecuada","Con la menor inversión","Con el precio más bajo","Con la mejor publicidad"],
+    a:0, e:"Los 4 objetivos del CRM: cliente adecuado, canal adecuado, momento oportuno y oferta adecuada."
+  },
+  {
+    p:"La fase del marketing \"uno a uno\" agrega a la capa de CRM operacional el…",
+    o:["CRM colaborativo","CRM analítico (analítica avanzada, data mining, big data)",
+       "CRM financiero","CRM de distribución"],
+    a:1, e:"El marketing uno a uno suma el CRM analítico: analítica avanzada, minería de datos y big data con acciones proactivas."
+  },
+  {
+    p:"El proceso iterativo del CRM arranca con la planificación del mercado, continúa con la acción (interacción con el cliente) y luego…",
+    o:["Se elimina la base de datos","El análisis/refinamiento y la analítica avanzada para descubrir insights",
+       "Se terceriza todo","Se realiza publicidad masiva"],
+    a:1, e:"Ciclo: planificación → acción/interacción → análisis/refinamiento → analítica avanzada (insights) para fidelizar y optimizar."
+  },
+  {
+    p:"Según la unidad, cuesta conseguir un cliente nuevo en comparación con fidelizar uno existente…",
+    o:["Lo mismo o menos","De 5 a 10 veces más","20 a 30 veces más","No se puede medir"],
+    a:1, e:"La fidelización es clave: cuesta de 5 a 10 veces más conseguir un cliente nuevo que fidelizar uno viejo."
+  },
+  {
+    p:"El módulo del CRM que registra las transacciones (oportunidades, contratos, campañas, ventas, postventa) y es el corazón del sistema es el CRM…",
+    o:["Analítico","Colaborativo","Operacional","Financiero"],
+    a:2, e:"El CRM operacional registra todas las transacciones y es el corazón: sin transacciones, los otros módulos no sirven."
+  },
+  {
+    p:"El módulo del CRM que permite la comunicación y el seguimiento (campañas automáticas por redes sociales u otros canales) es el CRM…",
+    o:["Colaborativo","Operacional","Analítico","Predictivo"],
+    a:0, e:"El CRM colaborativo permite generar la comunicación y el follow up de campañas por distintos canales."
+  },
+  {
+    p:"El CRM número 1 del mundo, con modelo SaaS (software como servicio) que se vende por usuario, es…",
+    o:["SugarCRM","SAP","Salesforce","HubSpot"],
+    a:2, e:"Salesforce es el CRM número uno global, modelo SaaS, vendido por usuario; su cliente cubre grandes compañías y pymes."
+  },
+  {
+    p:"¿Cuál de los siguientes es un CRM 100 % open source mencionado en la unidad?",
+    o:["SugarCRM","Salesforce","Zoho","Microsoft Dynamics"],
+    a:0, e:"SugarCRM es el software de CRM open source del top 10 mencionado, interesante para comunidades libres."
+  },
+  {
+    p:"La evolución histórica del marketing con software fue…",
+    o:["Cliente → producto → masificación → uno a uno",
+       "Masificación → marketing objetivo (producto) → fase del cliente → marketing uno a uno",
+       "Uno a uno → masificación → producto → cliente",
+       "Producto → uno a uno → masificación → cliente"],
+    a:1, e:"Evolución: masificación (planillas) → marketing objetivo por producto (filtros) → fase del cliente (CRM) → uno a uno (CRM analítico)."
+  },
+  {
+    p:"Los tres beneficios centrales del proceso de CRM para convencer de comprarlo son…",
+    o:["Publicidad, marca y distribución","Adquisición, fidelización/retención y rentabilidad",
+       "Precio, calidad y plaza","Producción, venta y postventa"],
+    a:1, e:"El eje para vender un CRM son tres beneficios: adquisición (más clientes), fidelización y retención, y rentabilidad."
+  },
+  {
+    p:"Según la unidad, la primera clase de mercado virtual que aparece con internet y cada vez más sin tienda física es…",
+    o:["El metamercado","El mercado de necesidades","El mercado virtual","El mercado geográfico"],
+    a:2, e:"El mercado virtual aparece gracias a internet: cada vez más empresas venden solo en la web."
+  }
+];
+
+// VS: evita repetir la misma pregunta sin cambiar de orden en intentos seguidos.
+let ultimoOrden = [];
+let responder = false;
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function nuevaRonda(){
+  let idx = [...Array(BANCO.length).keys()];
+  do{ idx = shuffle(idx); }while(idx.join()===ultimoOrden.join() && ultimoOrden.length>0);
+  ultimoOrden = idx.slice();
+  const sel = idx.slice(0,10); // 10 preguntas al azar
+  const preguntas = BANCO.filter((_,i)=>sel.includes(i)).map(q=>({...q}));
+
+  // mezclar opciones conservando la correcta
+  preguntas.forEach(q=>{
+    const optIndex = q.o.map((_,i)=>i);
+    shuffle(optIndex);
+    q.o = optIndex.map(i=>q.o[i]);
+    q.a = optIndex.indexOf(q.a);
+  });
+
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  preguntas.forEach((q,pos)=>{
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.answer = q.a;
+    card.dataset.correcta = q.o[q.a];
+    let optsHtml = "";
+    q.o.forEach((op,i)=>{
+      optsHtml += `<label class="opt"><input type="radio" name="q${pos}" value="${i}">`+
+                  `<span class="opt-label">${op}</span></label>`;
+    });
+    card.innerHTML = `<span class="q-num">Pregunta ${pos+1} de ${preguntas.length}</span>`+
+      `<div class="q-text">${q.p}</div>`+
+      `<div class="opts">${optsHtml}</div>`+
+      `<div class="feedback"></div>`;
+    card.querySelectorAll('.opt').forEach(lbl=>{
+      lbl.addEventListener('click',()=>marcarSeleccion(card,lbl));
+    });
+    main.appendChild(card);
+  });
+  responder = true;
+  actualizarPuntaje();
+  document.getElementById("resumenFinal").style.display="none";
+}
+
+function marcarSeleccion(card,lbl){
+  card.querySelectorAll('.opt').forEach(o=>o.classList.remove('seleccionada'));
+  lbl.classList.add('seleccionada');
+  lbl.querySelector('input').checked = true;
+  card.querySelector('.feedback').className='feedback';
+  card.querySelector('.feedback').innerHTML='';
+}
+
+function corregir(){
+  if(!responder) return;
+  const cards = document.querySelectorAll('.card');
+  let ok=0, mal=0;
+  cards.forEach(card=>{
+    const checked = card.querySelector('input:checked');
+    const fb = card.querySelector('.feedback');
+    if(!checked){
+      fb.className='feedback mal';
+      fb.innerHTML=`Sin respuesta. La correcta es: <span class="res-correcta">${card.dataset.correcta}</span>`;
+      mal++;
+      return;
+    }
+    const correcto = parseInt(checked.value)===parseInt(card.dataset.answer);
+    if(correcto){
+      ok++;
+      card.querySelectorAll('.opt').forEach(o=>o.style.borderColor='#a5d6a7');
+      checked.closest('.opt').style.background='#e8f5e9';
+      fb.className='feedback ok';
+      fb.innerHTML='✓ Correcto';
+    }else{
+      mal++;
+      checked.closest('.opt').style.background='#ffebee';
+      checked.closest('.opt').style.borderColor='#ef9a9a';
+      card.querySelectorAll('.opt input').forEach(inp=>{
+        if(parseInt(inp.value)===parseInt(card.dataset.answer)){
+          inp.closest('.opt').style.background='#e8f5e9';
+          inp.closest('.opt').style.borderColor='#a5d6a7';
+        }
+      });
+      fb.className='feedback mal';
+      fb.innerHTML=`✗ Incorrecto. La correcta es: <span class="res-correcta">${card.dataset.correcta}</span>`;
+    }
+    card.querySelectorAll('.opt input').forEach(i=>i.disabled=true);
+  });
+  responder=false;
+  const total=cards.length;
+  const res=document.getElementById("resumenFinal");
+  document.getElementById("rTotales").textContent=total;
+  document.getElementById("rOk").textContent=ok;
+  document.getElementById("rMal").textContent=mal;
+  const nota=(ok/total*10).toFixed(1);
+  const n=document.getElementById("rNota");
+  n.textContent=nota+" / 10";
+  n.className="nota "+(nota>=8?'nota-alta':nota>=5?'nota-media':'nota-baja');
+  document.getElementById("rMensaje").textContent =
+    nota>=8?"¡Muy bien! Listo para el examen.":
+    nota>=5?"Vas bien, repasá los conceptos que fallaron.":
+    "Repasá la unidad y volvé a intentarlo.";
+  res.style.display="block";
+  res.scrollIntoView({behavior:'smooth'});
+  actualizarPuntaje();
+}
+
+function actualizarPuntaje(){
+  const cards=document.querySelectorAll('.card');
+  const contestadas=cards.length
+    ? [...cards].filter(c=>c.querySelector('input:checked')||c.querySelector('.feedback').className.includes('mal')).length
+    : 0;
+  document.getElementById("puntaje").textContent=
+    `Mostrar: ${cards.length} preguntas · Respondidas: ${contestadas}`;
+}
+
+document.getElementById("btnShuffle").addEventListener("click",nuevaRonda);
+document.getElementById("btnEvaluar").addEventListener("click",corregir);
+document.getElementById("btnReintentar").addEventListener("click",()=>{
+  const cards=document.querySelectorAll('.card');
+  cards.forEach(card=>{
+    card.querySelectorAll('input').forEach(i=>{i.checked=false; i.disabled=false;});
+    card.querySelectorAll('.opt').forEach(o=>{o.classList.remove('seleccionada'); o.style.background=''; o.style.borderColor='';});
+    card.querySelector('.feedback').className='feedback';
+    card.querySelector('.feedback').innerHTML='';
+  });
+  responder=true;
+  document.getElementById("resumenFinal").style.display="none";
+  actualizarPuntaje();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+nuevaRonda();
+</script>
+</body>
+</html>
